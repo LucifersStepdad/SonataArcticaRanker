@@ -11,3 +11,5 @@ Then of course you get all your results, which album order you actually like bes
 It'll give you a fun little tier list, which is nice and of course it'll give you a full list so you can compare with all your friends their results!
 
 So sit back, get some vodka, and spend the afternoon thinking about Sonata Arctica. It's better than working!
+
+(I have also included the clip_cutter python that I used to make this if you want to make a version for another band [I have no idea why you would listen to any other bands though]).
