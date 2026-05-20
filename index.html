@@ -1750,85 +1750,72 @@ let currentlyPlaying = null;
 // Audio cache for instant playback
 const audioCache = {};
 
-function playClip(side) {
+async function playClip(side) {
   if (!currentPair) return;
   const song = SONGS[currentPair[side]];
   if (!song) return;
   const path = song.clipPath;
   
-  // If clicking the currently playing clip, stop it
-  if (currentlyPlaying === side && audio && !audio.paused) {
-    audio.pause(); 
-    audio.currentTime = 0;
-    currentlyPlaying = null;
-    updatePlayIndicators(); 
-    setAudioStatus('Stopped', false);
-    return;
-  }
-  
-  // Stop any currently playing audio completely
-  if (audio) {
+  // Stop current playback
+  if (audio && !audio.paused) {
     audio.pause();
     audio.currentTime = 0;
+    if (currentlyPlaying === side) {
+      currentlyPlaying = null;
+      updatePlayIndicators();
+      setAudioStatus('Stopped', false);
+      return;
+    }
   }
   
-  // Get or create audio element
-  let newAudio = audioCache[path];
-  
-  if (newAudio) {
-    // Reset existing cached audio
-    newAudio.pause();
-    newAudio.currentTime = 0;
-    audio = newAudio;
-  } else {
-    // Create new audio and cache it
-    newAudio = new Audio(path);
-    newAudio.preload = "auto";
-    newAudio.volume = 1.0;
-    audioCache[path] = newAudio;
-    audio = newAudio;
+  // Stop and clean up old audio
+  if (audio) {
+    audio.pause();
+    audio.src = '';
   }
   
-  // Remove old event listeners by cloning and replacing (cleaner approach)
-  const oldAudio = audio;
-  const cleanAudio = oldAudio.cloneNode();
-  cleanAudio.src = oldAudio.src;
-  cleanAudio.preload = "auto";
-  cleanAudio.volume = 1.0;
+  // Show loading status
+  setAudioStatus(`Loading ${song.title}...`, false);
   
-  // Replace in cache and use the clean one
-  audioCache[path] = cleanAudio;
-  audio = cleanAudio;
-  
-  // Set up fresh event listeners
-  audio.addEventListener('canplay', () => { 
-    audio.play()
-      .then(() => {
-        currentlyPlaying = side;
-        updatePlayIndicators();
-        setAudioStatus(`Now playing: ${song.title}`, true);
-      })
-      .catch(e => console.log("Play error:", e));
-  }, { once: true });
-  
-  audio.addEventListener('ended', () => { 
-    currentlyPlaying = null; 
-    updatePlayIndicators(); 
-    setAudioStatus('Playback ended', false); 
-    audio.currentTime = 0;
-  });
-  
-  audio.addEventListener('error', (e) => { 
-    console.warn(`Audio error for ${path}:`, e);
-    currentlyPlaying = null; 
-    updatePlayIndicators(); 
-    setAudioStatus('Failed to load audio - try again', false);
-  });
-  
-  audio.load();
+  try {
+    // Create new audio
+    audio = new Audio(path);
+    audio.preload = "auto";
+    audio.volume = 1.0;
+    
+    // Wait for it to be ready
+    await new Promise((resolve, reject) => {
+      audio.addEventListener('canplay', resolve, { once: true });
+      audio.addEventListener('error', reject, { once: true });
+      audio.load();
+      
+      // Timeout fallback
+      setTimeout(() => reject(new Error('Timeout')), 3000);
+    });
+    
+    // Play it
+    await audio.play();
+    currentlyPlaying = side;
+    updatePlayIndicators();
+    setAudioStatus(`Now playing: ${song.title}`, true);
+    
+  } catch (error) {
+    console.log("Audio error:", error);
+    currentlyPlaying = null;
+    updatePlayIndicators();
+    setAudioStatus('Click again to play', false);
+  }
 }
-
-function stopAudio() { if (audio && !audio.paused) audio.pause(); if (audio) audio.src = ''; currentlyPlaying = null; updatePlayIndicators(); }
+function stopAudio() { 
+  if (audio) {
+    try {
+      audio.pause();
+      audio.src = '';
+    } catch(e) {}
+  }
+  currentlyPlaying = null; 
+  updatePlayIndicators(); 
+}
 function updatePlayIndicators() {
   const ia = document.getElementById('playing-indicator-a'); if (ia) ia.textContent = currentlyPlaying === 0 ? 'NOW PLAYING' : '';
   const ib = document.getElementById('playing-indicator-b'); if (ib) ib.textContent = currentlyPlaying === 1 ? 'NOW PLAYING' : '';
