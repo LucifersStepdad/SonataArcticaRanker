@@ -13,3 +13,6 @@ It'll give you a fun little tier list, which is nice and of course it'll give yo
 So sit back, get some vodka, and spend the afternoon thinking about Sonata Arctica. It's better than working!
 
 (I have also included the clip_cutter python that I used to make this if you want to make a version for another band [I have no idea why you would listen to any other bands though]).
+
+
+NOTE: I know full well that Takatalvi is not a studio album but are you honestly going to tell me that ranking all SA songs should exclude Shy and The Gun? Come on, man.
