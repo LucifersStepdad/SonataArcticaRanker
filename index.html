@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sonata Arctica — Song Ranker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  .tier-selector {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 1rem 0;
+  }
+
+  .tier-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tier-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(122,176,240,0.1);
+  }
+
+  .tier-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(122,176,240,0.15);
+    box-shadow: 0 0 20px rgba(122,176,240,0.2);
+  }
+
+  .tier-btn[data-tier="S"] { color: #ff6060; border-color: rgba(255,80,80,0.3); }
+  .tier-btn[data-tier="A"] { color: #ffa030; border-color: rgba(255,160,50,0.3); }
+  .tier-btn[data-tier="B"] { color: #c8c832; border-color: rgba(200,200,50,0.3); }
+  .tier-btn[data-tier="C"] { color: #50c850; border-color: rgba(80,200,80,0.3); }
+  .tier-btn[data-tier="D"] { color: #50a0f0; border-color: rgba(80,160,240,0.3); }
+  .tier-btn[data-tier="F"] { color: #a050c8; border-color: rgba(160,80,200,0.3); }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #050810;
+    --bg2:       #0c1020;
+    --bg3:       #131828;
+    --border:    rgba(120,150,220,0.15);
+    --border2:   rgba(120,150,220,0.3);
+    --accent:    #7ab0f0;
+    --accent2:   #4a7ac8;
+    --gold:      #c8a84a;
+    --text:      #d0daf0;
+    --text2:     #8090b8;
+    --text3:     #4a5878;
+    --danger:    #c04040;
+    --snow:      rgba(200,220,255,0.04);
+    --drag-over: rgba(122,176,240,0.2);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 17px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(200,220,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 70%, rgba(200,220,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 85%, rgba(200,220,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 55%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 15%, rgba(200,220,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 75%, rgba(200,220,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 40%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(2px 2px at 15% 50%, rgba(200,220,255,0.15) 0%, transparent 100%),
+      radial-gradient(2px 2px at 85% 30%, rgba(200,220,255,0.12) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(to bottom, rgba(10,15,35,0.95), transparent);
+    position: relative;
+  }
+
+  .back-button-container {
+    position: absolute;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .back-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .back-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(122,176,240,0.1);
+  }
+
+  .logo-eyebrow {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .logo-container {
+    margin: 0.5rem 0;
+    text-align: center;
+  }
+
+  .site-logo {
+    height: 80px;
+    filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(180,210,255,0.5)) drop-shadow(0 0 30px rgba(122,176,240,0.25));
+    transition: filter 0.3s ease;
+  }
+
+  .site-logo:hover {
+    filter: brightness(0) invert(1) drop-shadow(0 0 16px rgba(180,210,255,0.7)) drop-shadow(0 0 40px rgba(122,176,240,0.4));
+  }
+
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(120,180,255,0.4);
+    line-height: 1.1;
+    display: none;
+  }
+
+  .header-sub {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text2);
+    font-size: 1rem;
+    margin-top: 0.4rem;
+  }
+
+  .progress-wrap {
+    width: 100%;
+    max-width: 700px;
+    padding: 1.2rem 1.5rem 0;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-meta .pct { color: var(--accent); }
+
+  .progress-track {
+    height: 2px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 700px;
+    padding: 2rem 1.5rem;
+    flex: 1;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  #screen-prequiz {
+    gap: 1.5rem;
+  }
+
+  #screen-prequiz h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    color: #fff;
+    text-align: center;
+  }
+
+  .quiz-description {
+    text-align: center;
+    color: var(--text2);
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+
+  .drag-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .album-pool {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .album-rank-list {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .album-pool h3, .album-rank-list h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .album-pool, .album-rank-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #album-pool-list, #album-rank-list-items {
+    flex: 1;
+    min-height: 200px;
+    border-radius: 4px;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+
+  #album-pool-list.drag-active, #album-rank-list-items.drag-active {
+    background: rgba(122,176,240,0.05);
+    box-shadow: inset 0 0 0 2px rgba(122,176,240,0.25);
+  }
+
+  .album-item {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+  }
+
+  .album-item:hover {
+    border-color: var(--border2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+  }
+
+  .album-item.dragging {
+    opacity: 0.35;
+    cursor: grabbing;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .drop-placeholder {
+    height: 46px;
+    border: 2px dashed var(--accent);
+    border-radius: 4px;
+    background: rgba(122,176,240,0.08);
+    margin-bottom: 0.5rem;
+    transition: height 0.1s;
+    pointer-events: none;
+  }
+
+  .album-item.insert-before {
+    box-shadow: 0 -3px 0 var(--accent);
+  }
+
+  .album-item.insert-after {
+    box-shadow: 0 3px 0 var(--accent);
+  }
+
+  .album-rank-number {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+    width: 30px;
+    text-align: center;
+  }
+
+  .album-name {
+    flex: 1;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+  }
+
+  .album-year {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .empty-rank-message {
+    text-align: center;
+    color: var(--text3);
+    padding: 2rem;
+    font-style: italic;
+    font-size: 0.9rem;
+  }
+  .quiz-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+
+  .skip-btn {
+    background: transparent;
+    border: 1px solid var(--text3);
+    color: var(--text3);
+  }
+
+  .skip-btn:hover {
+    border-color: var(--text2);
+    color: var(--text2);
+  }
+
+  #screen-welcome {
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+    padding-top: 3rem;
+  }
+
+  .welcome-art {
+    width: 120px;
+    height: 120px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    object-fit: cover;
+    box-shadow: 0 0 40px rgba(120,150,255,0.2);
+  }
+
+  #screen-welcome h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    color: #fff;
+    font-weight: 400;
+  }
+
+  #screen-welcome p {
+    color: var(--text2);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+  }
+
+  .stat-box {
+    text-align: center;
+  }
+
+  .stat-box .n {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    color: var(--accent);
+    display: block;
+    line-height: 1;
+  }
+
+  .stat-box .l {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    padding: 0.75rem 2.5rem;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .btn:hover {
+    background: rgba(120,150,220,0.1);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .btn.primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn.primary:hover {
+    background: rgba(122,176,240,0.15);
+    box-shadow: 0 0 20px rgba(122,176,240,0.2);
+  }
+
+  .btn.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+    font-size: 0.75rem;
+    padding: 0.5rem 1.2rem;
+  }
+
+  .btn.danger:hover { background: rgba(192,64,64,0.1); }
+
+  .resume-note {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+  }
+
+  #screen-battle { gap: 1.5rem; }
+
+  .battle-layout {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .undo-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .undo-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    border-radius: 4px;
+    padding: 1rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    width: 56px;
+  }
+
+  .undo-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+  }
+
+  .undo-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(122,176,240,0.08);
+  }
+
+  .undo-btn:active {
+    transform: scale(0.95);
+  }
+
+  .battle-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--text3);
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .battle-arena {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .song-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 480px;
+  }
+
+  .vote-zone {
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    position: relative;
+    flex: 1 0 auto;
+  }
+
+  .vote-zone:hover {
+    background: rgba(122,176,240,0.05);
+  }
+
+  .play-zone {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(0,0,0,0.2);
+    transition: all 0.18s ease;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+
+  .play-zone:hover {
+    background: rgba(122,176,240,0.1);
+    border-top-color: var(--accent);
+  }
+
+  .play-zone .play-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+
+  .play-zone:hover .play-label {
+    color: var(--accent);
+  }
+
+  .play-zone .current-playing {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--gold);
+    margin-top: 0.25rem;
+    height: 16px;
+  }
+
+  .song-card.chosen .vote-zone {
+    border-color: var(--gold);
+    background: rgba(200,168,74,0.07);
+    animation: chosen-flash 0.3s ease;
+  }
+
+  @keyframes chosen-flash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  .card-album-art {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .card-song-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.85rem, 2vw, 1.05rem);
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.3;
+    text-align: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-album-name {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 0.88rem;
+    color: var(--text2);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .card-year {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    letter-spacing: 0.12em;
+    margin-top: 0.5rem;
+  }
+
+  .vs-divider {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-align: center;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .battle-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  #screen-tier-list {
+    max-width: 820px;
+    gap: 1.5rem;
+  }
+
+  .tier-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    letter-spacing: 0.15em;
+    margin-top: -0.5rem;
+  }
+
+  .tier-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+  }
+
+  .tier-label {
+    width: 56px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    padding: 0.5rem;
+    letter-spacing: 0.05em;
+    gap: 0.2rem;
+  }
+
+  .tier-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+    font-weight: 400;
+  }
+
+  .tier-songs {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(0,0,0,0.25);
+    border-left: 1px solid var(--border);
+    min-height: 52px;
+  }
+
+  .tier-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.3rem 0.6rem;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.82rem;
+    color: var(--text);
+    white-space: nowrap;
+    transition: border-color 0.15s;
+  }
+
+  .tier-chip:hover { border-color: var(--border2); }
+
+  .tier-chip-art {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    object-fit: cover;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+
+  .tier-S .tier-label { background: rgba(255, 80,  80,  0.18); color: #ff6060; border-right: 1px solid rgba(255,80,80,0.3); }
+  .tier-A .tier-label { background: rgba(255,160,  50,  0.18); color: #ffa030; border-right: 1px solid rgba(255,160,50,0.3); }
+  .tier-B .tier-label { background: rgba(200,200,  50,  0.18); color: #c8c832; border-right: 1px solid rgba(200,200,50,0.3); }
+  .tier-C .tier-label { background: rgba( 80,200,  80,  0.18); color: #50c850; border-right: 1px solid rgba(80,200,80,0.3); }
+  .tier-D .tier-label { background: rgba( 80,160, 240,  0.18); color: #50a0f0; border-right: 1px solid rgba(80,160,240,0.3); }
+  .tier-F .tier-label { background: rgba(160, 80, 200,  0.18); color: #a050c8; border-right: 1px solid rgba(160,80,200,0.3); }
+
+  .tier-S { border-color: rgba(255, 80, 80,  0.25); }
+  .tier-A { border-color: rgba(255,160, 50,  0.25); }
+  .tier-B { border-color: rgba(200,200, 50,  0.25); }
+  .tier-C { border-color: rgba( 80,200, 80,  0.25); }
+  .tier-D { border-color: rgba( 80,160,240,  0.25); }
+  .tier-F { border-color: rgba(160, 80,200,  0.25); }
+
+  .tier-S .tier-chip { border-color: rgba(255, 80, 80,  0.2); }
+  .tier-A .tier-chip { border-color: rgba(255,160, 50,  0.2); }
+  .tier-B .tier-chip { border-color: rgba(200,200, 50,  0.2); }
+  .tier-C .tier-chip { border-color: rgba( 80,200, 80,  0.2); }
+  .tier-D .tier-chip { border-color: rgba( 80,160,240,  0.2); }
+  .tier-F .tier-chip { border-color: rgba(160, 80,200,  0.2); }
+
+  #screen-song-results, #screen-album-results {
+    gap: 1.5rem;
+  }
+
+  #screen-album-results {
+    max-width: 900px;
+  }
+
+  #screen-song-results h2, #screen-album-results h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    color: #fff;
+    text-align: center;
+    font-weight: 400;
+  }
+
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 44px 40px 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .result-row:last-child { border-bottom: none; }
+  .result-row:hover { background: var(--snow); }
+
+  .result-row:nth-child(1) { background: rgba(200,168,74,0.12); }
+  .result-row:nth-child(2) { background: rgba(200,168,74,0.07); }
+  .result-row:nth-child(3) { background: rgba(200,168,74,0.04); }
+
+  .result-rank {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  .result-row:nth-child(1) .result-rank { color: var(--gold); font-size: 1rem; }
+  .result-row:nth-child(2) .result-rank { color: #a0a0a0; }
+  .result-row:nth-child(3) .result-rank { color: #a07850; }
+
+  .result-art {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .result-info { overflow: hidden; }
+
+  .result-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result-album {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result-play {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .result-play:hover { border-color: var(--accent); color: var(--accent); }
+  .result-play.playing { border-color: var(--gold); color: var(--gold); }
+  .result-play svg { width: 10px; height: 10px; fill: currentColor; }
+
+  .album-stats {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: 0.5rem;
+  }
+
+  .metric-toggle {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .album-results-columns {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .album-results-col {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .col-header {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text3);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 0.75rem;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .col-no-prediction {
+    text-align: center;
+    color: var(--text3);
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 2rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    line-height: 1.6;
+  }
+
+  .result-row.prediction-row {
+    grid-template-columns: 44px 40px 1fr;
+  }
+
+  .metric-btn {
+    position: relative;
+  }
+
+  .metric-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: 'Crimson Text', serif;
+    font-size: 0.82rem;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    white-space: normal;
+    width: 220px;
+    text-align: center;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .metric-btn::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--border2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 11;
+  }
+
+  .metric-btn:hover::after,
+  .metric-btn:hover::before {
+    opacity: 1;
+  }
+
+  @media (max-width: 520px) {
+    .album-results-columns { flex-direction: column; }
+  }
+
+  .metric-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    padding: 0.4rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .metric-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(122,176,240,0.1);
+  }
+
+  .metric-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .results-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .audio-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    letter-spacing: 0.1em;
+    height: 20px;
+    padding: 4px;
+  }
+
+  .audio-status.playing { color: var(--gold); }
+
+  footer {
+    width: 100%;
+    text-align: center;
+    padding: 1.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+
+  @media (max-width: 520px) {
+    .battle-arena { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .vs-divider { padding: 0.5rem 0; }
+    .drag-container { flex-direction: column; }
+    .undo-column { flex-direction: row; justify-content: center; }
+    .battle-layout { flex-direction: column; }
+    .undo-btn { flex-direction: row; width: auto; padding: 0.6rem 1.2rem; gap: 0.5rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="back-button-container">
+      <button class="back-btn" onclick="window.goBack()">↩ Back</button>
+    </div>
+    <div class="logo-eyebrow">The Sonata Arctica Ranker</div>
+    <div class="logo-container">
+      <img src="covers/SonataArcticaLogoVector.png" alt="Sonata Arctica" class="site-logo">
+    </div>
+    <div class="header-sub">A truly exhaustive Sonata Arctica Listmaker</div>
+  </header>
+
+  <div class="progress-wrap" id="progress-wrap" style="display:none">
+    <div class="progress-meta">
+      <span id="progress-label">0 / 0 comparisons</span>
+      <span class="pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div class="screen" id="screen-intro">
+    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 60vh;">
+      <h2 style="font-family: 'Cinzel', serif; font-size: 1.8rem; color: #fff; margin-bottom: 2rem; letter-spacing: 0.05em;">
+        Welcome to the Sonata Arctica Song Ranker
+      </h2>
+      
+      <p style="font-family: 'Crimson Text', serif; font-size: 1.2rem; color: var(--accent); font-style: italic; margin-bottom: 2rem;">
+        Go get a drink. This might take a while.
+      </p>
+      
+      <p style="font-family: 'Crimson Text', serif; font-size: 1rem; color: var(--text2); max-width: 500px; margin-bottom: 1.5rem; line-height: 1.6;">
+        Before we begin, I invite you to rank the albums in the order you <i>think</i> they should be in. 
+        We'll compare your prediction to the actual ranking that emerges from your song-by-song votes.
+      </p>
+      
+      <p style="font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold); margin: 2rem 0; letter-spacing: 0.05em;">
+        Will your gut feeling match the data?
+      </p>
+      
+      <button class="btn primary" id="beginQuizBtn" style="margin-top: 1rem; font-size: 1.1rem; padding: 0.75rem 3rem;">
+        BEGIN
+      </button>
+    </div>
+  </div>
+  <div class="screen" id="screen-prequiz">
+    <h2>Album Prediction Quiz</h2>
+    <div class="quiz-description">Before we do some serious data analysis, drag the albums into what order you <i>think</i> the albums should be in, best at the top.</div>
+<div class="album-rank-list" style="width:100%;">
+  <h3>Your Predicted Ranking</h3>
+  <div id="album-rank-list-items" style="min-height:400px;"></div>
+</div>
+    <div class="quiz-actions">
+      <button class="btn skip-btn" id="skipQuizBtn">Skip Quiz</button>
+      <button class="btn primary" id="savePredictionBtn">Save Prediction & Continue</button>
+    </div>
+  </div>
+
+  <div class="screen active" id="screen-welcome">
+    <h2>The Sonata Arctica Showdown</h2>
+    <p>You'll be shown two songs at a time. Pick the one you prefer. Please note that for the algorithms to work, there are no draws possible.</p>
+    <div class="stat-row">
+      <div class="stat-box"><span class="n" id="stat-songs">0</span><span class="l">Songs</span></div>
+      <div class="stat-box"><span class="n" id="stat-albums">0</span><span class="l">Albums</span></div>
+      <div class="stat-box"><span class="n" id="stat-matches">~0</span><span class="l">Battles</span></div>
+    </div>
+    <div id="welcome-actions"></div>
+    <div id="resume-info" class="resume-note" style="display:none"></div>
+  </div>
+
+  <div class="screen" id="screen-mode-select">
+    <h2>Choose Ranking Method</h2>
+    <p style="text-align:center;max-width:500px;margin:0 auto 1.5rem">Select how you want to rank the songs:</p>
+    
+    <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px;max-width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1.5rem">
+        <h3 style="font-family:'Cinzel';color:var(--accent);text-align:center;margin-top:0">Tournament Sort</h3>
+        <p style="color:var(--text2);line-height:1.6">Full comparison tournament that guarantees a precise ranking order...but it takes ages. Die hards only.</p>
+        <div style="margin:1rem 0;padding:0.75rem;background:var(--bg3);border-radius:4px;text-align:center">
+          <div style="font-family:'Share Tech Mono';font-size:11px;color:var(--text3);letter-spacing:0.1em">ESTIMATED BATTLES</div>
+		  <div style="font-family:'Cinzel';font-size:1.2rem;color:var(--accent)" id="tournament-estimate">~--</div>
+        </div>
+        <button class="btn primary" style="margin-top:0.5rem;width:100%" id="tournamentBtn">Begin Tournament</button>
+      </div>
+      
+      <div style="flex:1;min-width:280px;max-width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1.5rem">
+        <h3 style="font-family:'Cinzel';color:var(--accent);text-align:center;margin-top:0">ELO Rating</h3>
+        <p style="color:var(--text2);line-height:1.6">Faster ELO-based ranking with minimum 5 battles per song. Is much quicker but slightly less accurate.</p>
+        <div style="margin:1rem 0;padding:0.75rem;background:var(--bg3);border-radius:4px;text-align:center">
+          <div style="font-family:'Share Tech Mono';font-size:11px;color:var(--text3);letter-spacing:0.1em">ESTIMATED BATTLES</div>
+		  <div style="font-family:'Cinzel';font-size:1.2rem;color:var(--accent)" id="elo-estimate">~--</div>
+        </div>
+        <button class="btn primary" style="margin-top:0.5rem;width:100%" id="eloBtn">Begin ELO Rating</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-battle">
+    <div class="battle-label">Which do you prefer?</div>
+    <div class="battle-layout">
+      <div class="undo-column">
+        <button class="undo-btn" id="undoBtn" title="Undo last vote">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+          <span>UNDO</span>
+        </button>
+      </div>
+      <div class="battle-arena">
+        <div class="song-card" id="card-a">
+          <div class="vote-zone" id="vote-a">
+            <img class="card-album-art" id="art-a" src="" alt="">
+            <div class="card-song-title" id="title-a">—</div>
+            <div class="card-album-name" id="album-a">—</div>
+            <div class="card-year" id="year-a">—</div>
+          </div>
+          <div class="play-zone" id="play-a">
+            <div class="play-label">▶ PLAY CLIP</div>
+            <div class="current-playing" id="playing-indicator-a"></div>
+          </div>
+        </div>
+        <div class="vs-divider">vs</div>
+        <div class="song-card" id="card-b">
+          <div class="vote-zone" id="vote-b">
+            <img class="card-album-art" id="art-b" src="" alt="">
+            <div class="card-song-title" id="title-b">—</div>
+            <div class="card-album-name" id="album-b">—</div>
+            <div class="card-year" id="year-b">—</div>
+          </div>
+          <div class="play-zone" id="play-b">
+            <div class="play-label">▶ PLAY CLIP</div>
+            <div class="current-playing" id="playing-indicator-b"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="audio-status" id="audio-status">Click PLAY CLIP to listen — click again to stop</div>
+    <div class="battle-hint">Click on the song name that you prefer. Or use the left and right arrow keys.</div>
+  </div>
+
+  <div class="screen" id="screen-song-results">
+    <h2>Your Song Ranking</h2>
+    <div id="song-results-list" class="results-list"></div>
+    <div class="results-actions">
+      <button class="btn primary" id="viewTierListBtn">View Tier List</button>
+      <button class="btn primary" id="viewAlbumResultsBtn">View Album Rankings</button>
+      <button class="btn" id="exportResultsBtn">Export as text</button>
+      <button class="btn danger" id="resetFromSongBtn">Start over</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-tier-list">
+    <h2>Your Tier List</h2>
+    <div class="tier-subtitle" id="tier-subtitle"></div>
+    
+    <div class="tier-selector">
+      <button class="tier-btn" data-tier="S">S</button>
+      <button class="tier-btn" data-tier="A">A</button>
+      <button class="tier-btn" data-tier="B">B</button>
+      <button class="tier-btn" data-tier="C">C</button>
+      <button class="tier-btn" data-tier="D">D</button>
+      <button class="tier-btn" data-tier="F">F</button>
+    </div>
+    
+    <div id="tier-list-container"></div>
+    
+    <div class="results-actions">
+      <button class="btn" id="backToSongsFromTierBtn">← Back to Songs</button>
+      <button class="btn primary" id="viewAlbumFromTierBtn">View Album Rankings →</button>
+      <button class="btn danger" id="resetFromTierBtn">Start over</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-album-results">
+    <h2>Album Rankings</h2>
+    <div class="album-results-columns">
+      <div class="album-results-col">
+        <div class="col-header">Your Prediction</div>
+        <div id="album-prediction-list" class="results-list"></div>
+      </div>
+      <div class="album-results-col">
+        <div class="col-header">
+          <div class="metric-toggle">
+            <button class="metric-btn active" id="metric-total" data-tooltip="Albums with more songs you ranked highly score more points.">Total Score</button>
+            <button class="metric-btn" id="metric-median" data-tooltip="The rank of the middle song on each album, more of a 'consistently good' rating.">Median Rank</button>
+          </div>
+        </div>
+        <div id="album-results-list" class="results-list"></div>
+      </div>
+    </div>
+    <div class="results-actions">
+      <button class="btn" id="backToSongsBtn">← Back to Songs</button>
+      <button class="btn primary" id="exportFullBtn">Export Complete Results</button>
+      <button class="btn danger" id="resetFromAlbumBtn">Start over</button>
+    </div>
+  </div>
+
+<footer>
+  <div>All music © Sonata Arctica · This is a non commercial fan project.</div>
+  <div style="margin-top: 0.5rem;">
+    <a href="https://shop.sonataarctica.info" target="_blank" style="color: var(--accent);">Go buy a hoodie or something and support the band.</a>
+  </div>
+</footer>
+</div>
+
+<script>
+const ALBUM_INFO = {
+  clearcold:      { title: "Clear Cold Beyond", year: 2024, art: "covers/clearcold.jpg" },
+  daysofgrays:    { title: "The Days of Grays", year: 2009, art: "covers/daysofgrays.jpg" },
+  ecliptica:      { title: "Ecliptica", year: 1999, art: "covers/ecliptica.jpg" },
+  pariahschild:   { title: "Pariah's Child", year: 2014, art: "covers/pariahschild.jpg" },
+  reckoning:      { title: "Reckoning Night", year: 2004, art: "covers/reckoning.jpg" },
+  silence:        { title: "Silence", year: 2001, art: "covers/silence.jpg" },
+  stones:         { title: "Stones Grow Her Name", year: 2012, art: "covers/stones.jpg" },
+  takatalvi:      { title: "Takatalvi", year: 2003, art: "covers/takatalvi.jpg" },
+  talviyo:        { title: "Talviyö", year: 2019, art: "covers/talviyo.jpg" },
+  theninthhour:   { title: "The Ninth Hour", year: 2016, art: "covers/theninthhour.jpg" },
+  unia:           { title: "Unia", year: 2007, art: "covers/unia.jpg" },
+  winterhearts:   { title: "Winterheart's Guild", year: 2003, art: "covers/winterhearts.jpg" }
+};
+
+const SONGS_DATA = [
+  // Clear Cold Beyond (12 songs)
+  { filename: "clearcold--a-ballad-for-the-broken.mp3", albumId: "clearcold", title: "A Ballad for the Broken" },
+  { filename: "clearcold--a-monster-only-you-cant-see.mp3", albumId: "clearcold", title: "A Monster Only You Can't See" },
+  { filename: "clearcold--angel-defiled.mp3", albumId: "clearcold", title: "Angel Defiled" },
+  { filename: "clearcold--california.mp3", albumId: "clearcold", title: "California" },
+  { filename: "clearcold--clear-cold-beyond.mp3", albumId: "clearcold", title: "Clear Cold Beyond" },
+  { filename: "clearcold--cure-for-everything.mp3", albumId: "clearcold", title: "Cure for Everything" },
+  { filename: "clearcold--dark-empath.mp3", albumId: "clearcold", title: "Dark Empath" },
+  { filename: "clearcold--first-in-line.mp3", albumId: "clearcold", title: "First in Line" },
+  { filename: "clearcold--shah-mat.mp3", albumId: "clearcold", title: "Shah Mat" },
+  { filename: "clearcold--teardrops.mp3", albumId: "clearcold", title: "Teardrops" },
+  { filename: "clearcold--the-best-things.mp3", albumId: "clearcold", title: "The Best Things" },
+  { filename: "clearcold--toy-soldiers.mp3", albumId: "clearcold", title: "Toy Soldiers" },
+
+  // The Days of Grays (excluding duplicate - the Unia version is kept)
+  { filename: "daysofgrays--as-if-the-world-wasnt-ending.mp3", albumId: "daysofgrays", title: "As If the World Wasn't Ending" },
+  { filename: "daysofgrays--breathing.mp3", albumId: "daysofgrays", title: "Breathing" },
+  { filename: "daysofgrays--deathaura.mp3", albumId: "daysofgrays", title: "Deathaura" },
+  { filename: "daysofgrays--everything-fades-to-gray-full-version.mp3", albumId: "daysofgrays", title: "Everything Fades to Gray (Full Version)" },
+  { filename: "daysofgrays--everything-fades-to-gray-instrumental.mp3", albumId: "daysofgrays", title: "Everything Fades to Gray (Instrumental)" },
+  { filename: "daysofgrays--flag-in-the-ground.mp3", albumId: "daysofgrays", title: "Flag in the Ground" },
+  { filename: "daysofgrays--in-my-eyes-youre-a-giant.mp3", albumId: "daysofgrays", title: "In My Eyes You're a Giant" },
+  { filename: "daysofgrays--in-the-dark.mp3", albumId: "daysofgrays", title: "In the Dark" },
+  { filename: "daysofgrays--juliet.mp3", albumId: "daysofgrays", title: "Juliet" },
+  // SKIPPED: daysofgrays--my-dreams-but-a-drop-of-fuel-for-a-nightmare (duplicate, keep Unia version)
+  { filename: "daysofgrays--no-dream-can-heal-a-broken-heart.mp3", albumId: "daysofgrays", title: "No Dream Can Heal a Broken Heart" },
+  { filename: "daysofgrays--nothing-more.mp3", albumId: "daysofgrays", title: "Nothing More" },
+  { filename: "daysofgrays--the-dead-skin.mp3", albumId: "daysofgrays", title: "The Dead Skin" },
+  { filename: "daysofgrays--the-last-amazing-grays.mp3", albumId: "daysofgrays", title: "The Last Amazing Grays" },
+  { filename: "daysofgrays--the-truth-is-out-there.mp3", albumId: "daysofgrays", title: "The Truth Is Out There" },
+  { filename: "daysofgrays--zeroes.mp3", albumId: "daysofgrays", title: "Zeroes" },
+
+  // Ecliptica
+  { filename: "ecliptica--blank-file.mp3", albumId: "ecliptica", title: "Blank File" },
+  { filename: "ecliptica--destruction-preventer.mp3", albumId: "ecliptica", title: "Destruction Preventer" },
+  { filename: "ecliptica--eighth-commandment.mp3", albumId: "ecliptica", title: "Eighth Commandment" },
+  { filename: "ecliptica--fullmoon.mp3", albumId: "ecliptica", title: "FullMoon" },
+  { filename: "ecliptica--kingdom-for-a-heart.mp3", albumId: "ecliptica", title: "Kingdom for a Heart" },
+  { filename: "ecliptica--letter-to-dana.mp3", albumId: "ecliptica", title: "Letter to Dana" },
+  { filename: "ecliptica--marylou.mp3", albumId: "ecliptica", title: "Mary-Lou" },
+  { filename: "ecliptica--my-land.mp3", albumId: "ecliptica", title: "My Land" },
+  { filename: "ecliptica--picturing-the-past.mp3", albumId: "ecliptica", title: "Picturing the Past" },
+  { filename: "ecliptica--replica.mp3", albumId: "ecliptica", title: "Replica" },
+  { filename: "ecliptica--unopened.mp3", albumId: "ecliptica", title: "UnOpened" },
+
+  // Pariah's Child
+  { filename: "pariahschild--blood.mp3", albumId: "pariahschild", title: "Blood" },
+  { filename: "pariahschild--cloud-factory.mp3", albumId: "pariahschild", title: "Cloud Factory" },
+  { filename: "pariahschild--half-a-marathon-man.mp3", albumId: "pariahschild", title: "Half a Marathon Man" },
+  { filename: "pariahschild--larger-than-life.mp3", albumId: "pariahschild", title: "Larger Than Life" },
+  { filename: "pariahschild--love.mp3", albumId: "pariahschild", title: "Love" },
+  { filename: "pariahschild--no-pain.mp3", albumId: "pariahschild", title: "No Pain" },
+  { filename: "pariahschild--running-lights.mp3", albumId: "pariahschild", title: "Running Lights" },
+  { filename: "pariahschild--take-one-breath.mp3", albumId: "pariahschild", title: "Take One Breath" },
+  { filename: "pariahschild--the-wolves-die-young.mp3", albumId: "pariahschild", title: "The Wolves Die Young" },
+  { filename: "pariahschild--what-did-you-do-in-the-war-dad.mp3", albumId: "pariahschild", title: "What Did You Do in the War, Dad?" },
+  { filename: "pariahschild--x-marks-the-spot.mp3", albumId: "pariahschild", title: "X Marks the Spot" },
+
+  // Reckoning Night
+  { filename: "reckoning--aint-your-fairytale.mp3", albumId: "reckoning", title: "Ain't Your Fairytale" },
+  { filename: "reckoning--blinded-no-more.mp3", albumId: "reckoning", title: "Blinded No More" },
+  { filename: "reckoning--dont-say-a-word.mp3", albumId: "reckoning", title: "Don't Say a Word" },
+  { filename: "reckoning--jam.mp3", albumId: "reckoning", title: "Jam" },
+  { filename: "reckoning--misplaced.mp3", albumId: "reckoning", title: "Misplaced" },
+  { filename: "reckoning--my-selene.mp3", albumId: "reckoning", title: "My Selene" },
+  { filename: "reckoning--reckoning-day-reckoning-night.mp3", albumId: "reckoning", title: "Reckoning Day, Reckoning Night" },
+  { filename: "reckoning--shamandalie.mp3", albumId: "reckoning", title: "Shamandalie" },
+  { filename: "reckoning--the-boy-who-wanted-to-be-a-real-puppet.mp3", albumId: "reckoning", title: "The Boy Who Wanted to Be a Real Puppet" },
+  { filename: "reckoning--white-pearl-black-oceans.mp3", albumId: "reckoning", title: "White Pearl, Black Oceans..." },
+  { filename: "reckoning--wildfire.mp3", albumId: "reckoning", title: "Wildfire" },
+  { filename: "reckoning--wrecking-the-sphere.mp3", albumId: "reckoning", title: "Wrecking the Sphere" },
+
+  // Silence
+  { filename: "silence--black-sheep.mp3", albumId: "silence", title: "Black Sheep" },
+  { filename: "silence--false-news-travel-fast.mp3", albumId: "silence", title: "False News Travel Fast" },
+  { filename: "silence--land-of-the-free.mp3", albumId: "silence", title: "Land of the Free" },
+  { filename: "silence--last-drop-falls.mp3", albumId: "silence", title: "Last Drop Falls" },
+  { filename: "silence--of-silence.mp3", albumId: "silence", title: "...of Silence" },
+  { filename: "silence--peacemaker.mp3", albumId: "silence", title: "PeaceMaker" },
+  { filename: "silence--respect-the-wilderness.mp3", albumId: "silence", title: "Respect the Wilderness" },
+  { filename: "silence--revontulet.mp3", albumId: "silence", title: "Revontulet" },
+  { filename: "silence--san-sebastian-revisited.mp3", albumId: "silence", title: "San Sebastian (Revisited)" },
+  { filename: "silence--sing-in-silence.mp3", albumId: "silence", title: "Sing in Silence" },
+  { filename: "silence--tallulah.mp3", albumId: "silence", title: "Tallulah" },
+  { filename: "silence--the-end-of-this-chapter.mp3", albumId: "silence", title: "The End of This Chapter" },
+  { filename: "silence--the-power-of-one.mp3", albumId: "silence", title: "The Power of One" },
+  { filename: "silence--weballergy.mp3", albumId: "silence", title: "Weballergy" },
+  { filename: "silence--wolf-raven.mp3", albumId: "silence", title: "Wolf & Raven" },
+
+  // Stones Grow Her Name
+  { filename: "stones--alone-in-heaven.mp3", albumId: "stones", title: "Alone in Heaven" },
+  { filename: "stones--cinderblox.mp3", albumId: "stones", title: "Cinderblox" },
+  { filename: "stones--dont-be-mean.mp3", albumId: "stones", title: "Don't Be Mean" },
+  { filename: "stones--i-have-a-right.mp3", albumId: "stones", title: "I Have a Right" },
+  { filename: "stones--losing-my-insanity.mp3", albumId: "stones", title: "Losing My Insanity" },
+  { filename: "stones--onetwofreefall.mp3", albumId: "stones", title: "One-Two-Free-Fall" },
+  { filename: "stones--only-the-broken-hearts-make-you-beautiful.mp3", albumId: "stones", title: "Only the Broken Hearts (Make You Beautiful)" },
+  { filename: "stones--shitload-o-money.mp3", albumId: "stones", title: "Shitload of Money" },
+  { filename: "stones--somewhere-close-to-you.mp3", albumId: "stones", title: "Somewhere Close to You" },
+  { filename: "stones--the-day.mp3", albumId: "stones", title: "The Day" },
+  { filename: "stones--tonight-i-dance-alone.mp3", albumId: "stones", title: "Tonight I Dance Alone" },
+  { filename: "stones--wildfire-pt-2-one-with-the-mountain.mp3", albumId: "stones", title: "Wildfire, Part II: One with the Mountain" },
+  { filename: "stones--wildfire-pt-3-wildfire-town-population-0.mp3", albumId: "stones", title: "Wildfire, Part III: Wildfire Town, Population: 0" },
+
+  // Takatalvi
+  { filename: "takatalvi--dream-thieves.mp3", albumId: "takatalvi", title: "Dream Thieves" },
+  { filename: "takatalvi--fade-to-black.mp3", albumId: "takatalvi", title: "Fade to Black" },
+  { filename: "takatalvi--i-want-out.mp3", albumId: "takatalvi", title: "I Want Out" },
+  { filename: "takatalvi--san-sebastian-original-version.mp3", albumId: "takatalvi", title: "San Sebastian (Original Version)" },
+  { filename: "takatalvi--shy.mp3", albumId: "takatalvi", title: "Shy" },
+  { filename: "takatalvi--still-loving-you.mp3", albumId: "takatalvi", title: "Still Loving You" },
+  { filename: "takatalvi--the-gun.mp3", albumId: "takatalvi", title: "The Gun" },
+
+  // Talviyö
+  { filename: "talviyo--a-little-less-understanding.mp3", albumId: "talviyo", title: "A Little Less Understanding" },
+  { filename: "talviyo--cold.mp3", albumId: "talviyo", title: "Cold" },
+  { filename: "talviyo--demons-cage.mp3", albumId: "talviyo", title: "Demons Cage" },
+  { filename: "talviyo--ismos-got-good-reactors.mp3", albumId: "talviyo", title: "Ismo's Got Good Reactors" },
+  { filename: "talviyo--message-from-the-sun.mp3", albumId: "talviyo", title: "Message from the Sun" },
+  { filename: "talviyo--storm-the-armada.mp3", albumId: "talviyo", title: "Storm the Armada" },
+  { filename: "talviyo--the-garden.mp3", albumId: "talviyo", title: "The Garden" },
+  { filename: "talviyo--the-last-of-the-lambs.mp3", albumId: "talviyo", title: "The Last of the Lambs" },
+  { filename: "talviyo--the-raven-still-flies-with-you.mp3", albumId: "talviyo", title: "The Raven Still Flies with You" },
+  { filename: "talviyo--whirlwind.mp3", albumId: "talviyo", title: "Whirlwind" },
+  { filename: "talviyo--who-failed-the-most.mp3", albumId: "talviyo", title: "Who Failed the Most" },
+  { filename: "talviyo--you-wont-fall.mp3", albumId: "talviyo", title: "You Won't Fall" },
+
+  // The Ninth Hour
+  { filename: "theninthhour--among-the-shooting-stars.mp3", albumId: "theninthhour", title: "Among the Shooting Stars" },
+  { filename: "theninthhour--candle-lawns.mp3", albumId: "theninthhour", title: "Candle Lawns" },
+  { filename: "theninthhour--closer-to-an-animal.mp3", albumId: "theninthhour", title: "Closer to an Animal" },
+  { filename: "theninthhour--fairytale.mp3", albumId: "theninthhour", title: "Fairytale" },
+  { filename: "theninthhour--fly-navigate-communicate.mp3", albumId: "theninthhour", title: "Fly, Navigate, Communicate" },
+  { filename: "theninthhour--life.mp3", albumId: "theninthhour", title: "Life" },
+  { filename: "theninthhour--on-the-faultline-closure-to-an-animal.mp3", albumId: "theninthhour", title: "On the Faultline (Closure to an Animal)" },
+  { filename: "theninthhour--rise-a-night.mp3", albumId: "theninthhour", title: "Rise a Night" },
+  { filename: "theninthhour--run-to-you.mp3", albumId: "theninthhour", title: "Run to You" },
+  { filename: "theninthhour--the-elephant.mp3", albumId: "theninthhour", title: "The Elephant" },
+  { filename: "theninthhour--till-deaths-done-us-apart.mp3", albumId: "theninthhour", title: "Till Death's Done Us Apart" },
+  { filename: "theninthhour--we-are-what-we-are.mp3", albumId: "theninthhour", title: "We Are What We Are" },
+  { filename: "theninthhour--white-pearl-black-oceans-part-ii-by-the-grace-of-the-ocean.mp3", albumId: "theninthhour", title: "White Pearl, Black Oceans Part II: By the Grace of the Ocean" },
+
+  // Unia (including the definitive version of My Dream's But a Drop...)
+  { filename: "unia--caleb.mp3", albumId: "unia", title: "Caleb" },
+  { filename: "unia--fly-with-the-black-swan.mp3", albumId: "unia", title: "Fly with the Black Swan" },
+  { filename: "unia--for-the-sake-of-revenge.mp3", albumId: "unia", title: "For the Sake of Revenge" },
+  { filename: "unia--good-enough-is-good-enough.mp3", albumId: "unia", title: "Good Enough Is Good Enough" },
+  { filename: "unia--in-black-and-white.mp3", albumId: "unia", title: "In Black and White" },
+  { filename: "unia--it-wont-fade.mp3", albumId: "unia", title: "It Won't Fade" },
+  { filename: "unia--my-dreams-but-a-drop-of-fuel-for-a-nightmare.mp3", albumId: "unia", title: "My Dream's But a Drop of Fuel for a Nightmare" },
+  { filename: "unia--out-in-the-fields.mp3", albumId: "unia", title: "Out in the Fields" },
+  { filename: "unia--paid-in-full.mp3", albumId: "unia", title: "Paid in Full" },
+  { filename: "unia--the-harvest.mp3", albumId: "unia", title: "The Harvest" },
+  { filename: "unia--the-vice.mp3", albumId: "unia", title: "The Vice" },
+  { filename: "unia--the-worlds-forgotten-the-worlds-forbidden.mp3", albumId: "unia", title: "The Worlds Forgotten, the Words Forbidden" },
+  { filename: "unia--they-follow.mp3", albumId: "unia", title: "They Follow" },
+  { filename: "unia--to-create-a-warlike-feel.mp3", albumId: "unia", title: "To Create a Warlike Feel" },
+  { filename: "unia--under-your-tree.mp3", albumId: "unia", title: "Under Your Tree" },
+
+  // Winterheart's Guild
+  { filename: "winterhearts--abandoned-pleased-brainwashed-exploited.mp3", albumId: "winterhearts", title: "Abandoned, Pleased, Brainwashed, Exploited" },
+  { filename: "winterhearts--broken.mp3", albumId: "winterhearts", title: "Broken" },
+  { filename: "winterhearts--champagne-bath.mp3", albumId: "winterhearts", title: "Champagne Bath" },
+  { filename: "winterhearts--draw-me.mp3", albumId: "winterhearts", title: "Draw Me" },
+  { filename: "winterhearts--gravenimage.mp3", albumId: "winterhearts", title: "Gravenimage" },
+  { filename: "winterhearts--silver-tongue.mp3", albumId: "winterhearts", title: "Silver Tongue" },
+  { filename: "winterhearts--the-cage.mp3", albumId: "winterhearts", title: "The Cage" },
+  { filename: "winterhearts--the-misery.mp3", albumId: "winterhearts", title: "The Misery" },
+  { filename: "winterhearts--the-rest-of-the-sun-belongs-to-me.mp3", albumId: "winterhearts", title: "The Rest of the Sun Belongs to Me" },
+  { filename: "winterhearts--the-ruins-of-my-life.mp3", albumId: "winterhearts", title: "The Ruins of My Life" },
+  { filename: "winterhearts--victorias-secret.mp3", albumId: "winterhearts", title: "Victoria's Secret" }
+];
+
+const SONGS = SONGS_DATA.map(data => {
+  const info = ALBUM_INFO[data.albumId];
+  return {
+    filename: data.filename,
+    title: data.title,
+    albumId: data.albumId,
+    albumTitle: info.title,
+    year: info.year,
+    art: info.art,
+    clipPath: `clips/${data.filename}`
+  };
+});
+
+const TOTAL = SONGS.length;
+const ALBUM_COUNT = Object.keys(ALBUM_INFO).length;
+const EST_MATCHES = Math.round(TOTAL * Math.log2(TOTAL));
+const tournamentEstimateElement = document.getElementById('tournament-estimate');
+const eloEstimateElement = document.getElementById('elo-estimate');
+
+if (tournamentEstimateElement) {
+  tournamentEstimateElement.textContent = `~${EST_MATCHES.toLocaleString()}`;
+}
+
+if (eloEstimateElement) {
+  eloEstimateElement.textContent = `~${(TOTAL * 5).toLocaleString()}`;
+}
+let albumPrediction = null;
+let unrankedAlbums = [];
+let rankedAlbums = [];
+let draggedItem = null;
+function initAlbumPool() {
+  // Return all albums in release order
+  return Object.entries(ALBUM_INFO).map(([id, info]) => ({
+    id: id,
+    title: info.title,
+    year: info.year,
+    art: info.art
+  })).sort((a, b) => a.year - b.year);
+}
+
+// ADD THIS FUNCTION RIGHT AFTER initAlbumPool():
+function initializeRankedAlbums() {
+  // This loads all albums in release order into rankedAlbums
+  rankedAlbums = initAlbumPool();
+  renderAlbumDragDrop();
+}
+
+function renderAlbumDragDrop() {
+  const rankDiv = document.getElementById('album-rank-list-items');
+  const saveBtn = document.getElementById('savePredictionBtn');
+  if (!rankDiv) return;
+  
+  rankDiv.innerHTML = '';
+  if (saveBtn) saveBtn.disabled = rankedAlbums.length === 0;
+  
+  if (rankedAlbums.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'empty-rank-message';
+    emptyMsg.textContent = 'Drag albums to reorder them — best at the top';
+    rankDiv.appendChild(emptyMsg);
+  } else {
+    rankedAlbums.forEach((album, idx) => {
+      const div = document.createElement('div');
+      div.className = 'album-item';
+      div.setAttribute('draggable', 'true');
+      div.setAttribute('data-id', album.id);
+      div.setAttribute('data-type', 'ranked');
+      div.setAttribute('data-rank', idx);
+      const albumArt = album.art || '';
+      div.innerHTML = `<div class="album-rank-number">${idx + 1}</div><img class="tier-chip-art" src="${albumArt}" style="width:24px;height:24px;border-radius:2px;margin-right:8px;" onerror="this.style.display='none'"><div class="album-name">${album.title}</div><div class="album-year">${album.year}</div>`;
+      div.addEventListener('dragstart', handleDragStart);
+      div.addEventListener('dragend', handleDragEnd);
+      rankDiv.appendChild(div);
+    });
+  }
+}
+function handleDragStart(e) {
+  draggedItem = e.target.closest('.album-item');
+  if (!draggedItem) return;
+  e.dataTransfer.setData('text/plain', draggedItem.getAttribute('data-id'));
+  e.dataTransfer.effectAllowed = 'move';
+  requestAnimationFrame(() => draggedItem.classList.add('dragging'));
+}
+
+function handleDragEnd(e) {
+  if (draggedItem) draggedItem.classList.remove('dragging');
+  draggedItem = null;
+  removePlaceholder();
+  document.getElementById('album-pool-list')?.classList.remove('drag-active');
+  document.getElementById('album-rank-list-items')?.classList.remove('drag-active');
+}
+
+let placeholder = null;
+
+function getOrCreatePlaceholder() {
+  if (!placeholder) {
+    placeholder = document.createElement('div');
+    placeholder.className = 'drop-placeholder';
+  }
+  return placeholder;
+}
+
+function removePlaceholder() {
+  if (placeholder && placeholder.parentNode) {
+    placeholder.parentNode.removeChild(placeholder);
+  }
+}
+
+function movePlaceholderToPosition(container, clientY) {
+  const ph = getOrCreatePlaceholder();
+  const items = [...container.querySelectorAll('.album-item:not(.dragging)')];
+  
+  let inserted = false;
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    if (clientY < midY) {
+      container.insertBefore(ph, item);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) {
+    container.appendChild(ph);
+  }
+}
+
+function handleContainerDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const container = e.currentTarget;
+  container.classList.add('drag-active');
+  movePlaceholderToPosition(container, e.clientY);
+}
+
+function handleContainerDragLeave(e) {
+  const container = e.currentTarget;
+  if (!container.contains(e.relatedTarget)) {
+    container.classList.remove('drag-active');
+    removePlaceholder();
+  }
+}
+
+function handleContainerDrop(e) {
+  e.preventDefault();
+  removePlaceholder();
+  const container = e.currentTarget;
+  container.classList.remove('drag-active');
+  if (!draggedItem) return;
+
+  const sourceId = draggedItem.getAttribute('data-id');
+  const sourceType = draggedItem.getAttribute('data-type');
+  
+  // Only allow reordering within the ranked list
+  if (sourceType !== 'ranked') return;
+
+  const items = [...container.querySelectorAll('.album-item:not(.dragging)')];
+  let insertIndex = items.length;
+  for (let i = 0; i < items.length; i++) {
+    const rect = items[i].getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      insertIndex = i;
+      break;
+    }
+  }
+
+  const sourceIndex = rankedAlbums.findIndex(a => a.id === sourceId);
+  if (sourceIndex !== -1) {
+    const [removed] = rankedAlbums.splice(sourceIndex, 1);
+    let adj = insertIndex;
+    if (sourceIndex < insertIndex) adj = Math.max(0, insertIndex - 1);
+    rankedAlbums.splice(adj, 0, removed);
+  }
+
+  renderAlbumDragDrop();
+}
+
+function calculateAlbumStats(songOrder) {
+  const albumStats = {};
+  Object.keys(ALBUM_INFO).forEach(albumId => {
+    albumStats[albumId] = { songs: [], totalScore: 0, medianRank: 0 };
+  });
+  songOrder.forEach((songIdx, rank) => {
+    const song = SONGS[songIdx];
+    const rankPosition = rank + 1;
+    const weightedScore = 10000 / rankPosition;
+    albumStats[song.albumId].songs.push(rankPosition);
+    albumStats[song.albumId].totalScore += weightedScore;
+  });
+  Object.keys(albumStats).forEach(albumId => {
+    const stats = albumStats[albumId];
+    stats.songs.sort((a, b) => a - b);
+    const mid = Math.floor(stats.songs.length / 2);
+    stats.medianRank = stats.songs.length % 2 === 0 ? (stats.songs[mid - 1] + stats.songs[mid]) / 2 : stats.songs[mid];
+    stats.medianRank = Math.round(stats.medianRank * 10) / 10;
+    stats.totalScore = Math.round(stats.totalScore);
+  });
+  return albumStats;
+}
+
+function getAlbumRankingByTotal(albumStats) {
+  return Object.entries(albumStats).map(([albumId, stats]) => ({
+    albumId, albumTitle: ALBUM_INFO[albumId].title, year: ALBUM_INFO[albumId].year,
+    art: ALBUM_INFO[albumId].art, value: stats.totalScore
+  })).sort((a, b) => b.value - a.value);
+}
+
+function getAlbumRankingByMedian(albumStats) {
+  return Object.entries(albumStats).map(([albumId, stats]) => ({
+    albumId, albumTitle: ALBUM_INFO[albumId].title, year: ALBUM_INFO[albumId].year,
+    art: ALBUM_INFO[albumId].art, value: stats.medianRank
+  })).sort((a, b) => a.value - b.value);
+}
+
+let currentMetric = 'total';
+let currentAlbumStats = null;
+
+let historyStack = [];
+let sortState = null;
+let currentPair = null;
+
+function initSort() {
+  const indices = SONGS.map((_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return { runs: indices.map(i => [i]), passIndex: 0, left: null, right: null, li: 0, ri: 0, merged: [], completedRuns: [], done: false, comparisonsDone: 0 };
+}
+
+function estimateRemaining(state) {
+  if (state.done) return 0;
+  let n = 0;
+  if (state.left) n += (state.left.length - state.li) + (state.right.length - state.ri) - 1;
+  const remaining = state.runs.slice(state.passIndex);
+  for (let i = 0; i + 1 < remaining.length; i += 2) n += remaining[i].length + remaining[i+1].length - 1;
+  let runsLeft = state.completedRuns.length + Math.ceil(remaining.length / 2);
+  if (state.left) runsLeft += 1;
+  let sz = TOTAL / Math.max(runsLeft, 1);
+  while (runsLeft > 1) { const pairs = Math.floor(runsLeft / 2); n += pairs * (sz - 1); runsLeft = Math.ceil(runsLeft / 2); sz *= 2; }
+  return Math.max(0, Math.round(n));
+}
+
+function getCurrentPair(state) {
+  if (state.done || !state.left) return null;
+  if (state.li < state.left.length && state.ri < state.right.length) return [state.left[state.li], state.right[state.ri]];
+  return null;
+}
+
+function recordChoice(state, choice) {
+  historyStack.push(JSON.parse(JSON.stringify({ 
+    sortState: state, 
+    currentPair: currentPair 
+  })));
+  if (choice === 0) { state.merged.push(state.left[state.li]); state.li++; }
+  else { state.merged.push(state.right[state.ri]); state.ri++; }
+  state.comparisonsDone++;
+  advanceIfNeeded(state);
+}
+
+function advanceIfNeeded(state) {
+  while (state.left && (state.li >= state.left.length || state.ri >= state.right.length)) {
+    while (state.li < state.left.length) { state.merged.push(state.left[state.li]); state.li++; }
+    while (state.ri < state.right.length) { state.merged.push(state.right[state.ri]); state.ri++; }
+    state.completedRuns.push([...state.merged]);
+    state.merged = []; state.left = null; state.right = null;
+    tryStartNextMerge(state);
+  }
+}
+
+function tryStartNextMerge(state) {
+  if (state.runs.length >= 2) {
+    state.left = state.runs.shift(); state.right = state.runs.shift();
+    state.li = 0; state.ri = 0; state.merged = [];
+  } else if (state.runs.length === 1) { state.completedRuns.push(state.runs.shift()); tryEndPass(state); }
+  else { tryEndPass(state); }
+}
+
+function tryEndPass(state) {
+  if (state.completedRuns.length === 1) { state.done = true; state.finalOrder = state.completedRuns[0]; }
+  else { state.runs = state.completedRuns; state.completedRuns = []; tryStartNextMerge(state); }
+}
+
+let audio = new Audio();
+let currentlyPlaying = null;
+
+// Audio cache for instant playback
+const audioCache = {};
+
+function playClip(side) {
+  if (!currentPair) return;
+  const song = SONGS[currentPair[side]];
+  if (!song) return;
+  const path = song.clipPath;
+  
+  // Stop if already playing the same clip
+  if (currentlyPlaying === side && !audio.paused) {
+    audio.pause(); 
+    audio.src = ''; 
+    currentlyPlaying = null;
+    updatePlayIndicators(); 
+    setAudioStatus('Stopped', false);
+    return;
+  }
+  
+  // Stop any currently playing audio
+  if (audio && !audio.paused) { 
+    audio.pause(); 
+    audio.src = ''; 
+  }
+  
+  // Use cached audio if available
+  if (audioCache[path]) {
+    audio = audioCache[path];
+    audio.currentTime = 0; // Reset to beginning
+    audio.play()
+      .then(() => {
+        currentlyPlaying = side;
+        updatePlayIndicators();
+        setAudioStatus(`Now playing: ${song.title}`, true);
+      })
+      .catch(e => console.log("Playback error:", e));
+  } else {
+    // First time loading this clip - create and cache it
+    audio = new Audio(path);
+    audio.preload = "auto";
+    audio.volume = 1.0;
+    
+    // Store in cache after loading
+    audio.addEventListener('canplaythrough', () => {
+      if (!audioCache[path]) {
+        audioCache[path] = audio;
+        console.log(`Cached: ${song.title}`);
+      }
+    }, { once: true });
+    
+    audio.addEventListener('canplay', () => { 
+      audio.play(); 
+      currentlyPlaying = side; 
+      updatePlayIndicators(); 
+      setAudioStatus(`Now playing: ${song.title}`, true); 
+    }, { once: true });
+    
+    audio.addEventListener('ended', () => { 
+      currentlyPlaying = null; 
+      updatePlayIndicators(); 
+      setAudioStatus('Playback ended', false); 
+    });
+    audio.addEventListener('error', () => { 
+      console.warn(`Audio could not load: ${path}`);
+      currentlyPlaying = null; 
+      updatePlayIndicators(); 
+      setAudioStatus('Failed to load audio', false);
+    });
+    
+    audio.load();
+  }
+}
+
+function stopAudio() { if (audio && !audio.paused) audio.pause(); if (audio) audio.src = ''; currentlyPlaying = null; updatePlayIndicators(); }
+function updatePlayIndicators() {
+  const ia = document.getElementById('playing-indicator-a'); if (ia) ia.textContent = currentlyPlaying === 0 ? 'NOW PLAYING' : '';
+  const ib = document.getElementById('playing-indicator-b'); if (ib) ib.textContent = currentlyPlaying === 1 ? 'NOW PLAYING' : '';
+}
+function setAudioStatus(msg, isPlaying) { const el = document.getElementById('audio-status'); if (el) { el.textContent = msg; el.className = 'audio-status' + (isPlaying ? ' playing' : ''); } }
+
+const SAVE_KEY = 'sa_ranker_v11';
+function saveState() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(sortState)); } catch(e) {} }
+function loadState() { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch(e) {} return null; }
+function resetAll() { if (!confirm('Reset your entire ranking?')) return; localStorage.removeItem(SAVE_KEY); localStorage.removeItem('sa_album_prediction'); localStorage.removeItem('quiz_skipped'); location.reload(); }
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); const backBtn = document.querySelector('.back-btn'); if (id === 'screen-welcome' || id === 'screen-prequiz') { if(backBtn){ backBtn.style.opacity = '0.5'; backBtn.style.pointerEvents = 'none'; } } else { if(backBtn){ backBtn.style.opacity = '1'; backBtn.style.pointerEvents = 'auto'; } } }
+function goBack() {
+  if (document.getElementById('screen-battle').classList.contains('active')) { if (confirm('Going back will lose your current voting progress. Are you sure?')) resetAll(); }
+  else if (document.getElementById('screen-tier-list').classList.contains('active')) showScreen('screen-song-results');
+  else if (document.getElementById('screen-song-results').classList.contains('active')) showScreen('screen-welcome');
+  else if (document.getElementById('screen-album-results').classList.contains('active')) showScreen('screen-song-results');
+}
+function updateProgress() {
+  if (!sortState) return;
+  const done = sortState.comparisonsDone;
+  const est = done + estimateRemaining(sortState);
+  const pct = est > 0 ? Math.round((done / est) * 100) : 0;
+  document.getElementById('progress-label').textContent = `${done} comparisons done`;
+  document.getElementById('progress-pct').textContent = `${pct}%`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+function renderBattle() {
+  currentPair = getCurrentPair(sortState);
+  if (!currentPair) { currentAlbumStats = calculateAlbumStats(sortState.finalOrder); showSongResults(); return; }
+  const [ia, ib] = currentPair;
+  const sa = SONGS[ia], sb = SONGS[ib];
+  document.getElementById('art-a').src = sa.art; document.getElementById('title-a').textContent = sa.title;
+  document.getElementById('album-a').textContent = sa.albumTitle; document.getElementById('year-a').textContent = sa.year;
+  document.getElementById('art-b').src = sb.art; document.getElementById('title-b').textContent = sb.title;
+  document.getElementById('album-b').textContent = sb.albumTitle; document.getElementById('year-b').textContent = sb.year;
+  document.getElementById('card-a').classList.remove('chosen'); document.getElementById('card-b').classList.remove('chosen');
+  stopAudio(); setAudioStatus('Click PLAY CLIP to listen', false); updateProgress();
+}
+function choose(side) {
+  if (!sortState || sortState.done) return;
+  const card = document.getElementById(side === 0 ? 'card-a' : 'card-b');
+  card.classList.add('chosen'); stopAudio();
+  setTimeout(() => {
+    if (sortState.mode === 'elo') {
+      const winner = currentPair[side];
+      const loser = currentPair[side === 0 ? 1 : 0];
+      recordEloChoice(winner, loser);
+    } else {
+      recordChoice(sortState, side); saveState();
+      if (sortState.done) { 
+        document.getElementById('progress-wrap').style.display = 'none'; 
+        currentAlbumStats = calculateAlbumStats(sortState.finalOrder); 
+        showSongResults(); 
+      } else {
+        renderBattle();
+      }
+    }
+  }, 260);
+}
+function showSongResults() {
+  showScreen('screen-song-results');
+  const order = sortState.finalOrder || [];
+  const list = document.getElementById('song-results-list');
+  list.innerHTML = '';
+  order.forEach((idx, rank) => {
+    const song = SONGS[idx];
+    const medal = rank === 0 ? '♛' : rank === 1 ? '②' : rank === 2 ? '③' : `${rank + 1}`;
+    const row = document.createElement('div'); row.className = 'result-row';
+    row.innerHTML = `<div class="result-rank">${medal}</div><img class="result-art" src="${song.art}" onerror="this.style.opacity='0.3'"><div class="result-info"><div class="result-title">${escapeHtml(song.title)}</div><div class="result-album">${escapeHtml(song.albumTitle)} · ${song.year}</div></div><button class="result-play" data-idx="${idx}" title="Preview"><svg viewBox="0 0 16 16"><path d="M3 2l11 6-11 6z"/></svg></button>`;
+    list.appendChild(row);
+  });
+  document.querySelectorAll('.result-play').forEach(btn => { btn.addEventListener('click', (e) => { e.stopPropagation(); playResultClip(parseInt(btn.dataset.idx), btn); }); });
+}
+let currentTierData = null;
+let currentTier = 'S';
+
+function showTierList() {
+  const order = sortState.finalOrder || [];
+  const n = order.length;
+  if (n === 0) return;
+
+  const tiers = [
+    { name: 'S', pct: 0.05 },
+    { name: 'A', pct: 0.20 },
+    { name: 'B', pct: 0.50 },
+    { name: 'C', pct: 0.80 },
+    { name: 'D', pct: 0.95 },
+    { name: 'F', pct: 1.00 },
+  ];
+
+  const fSong = order[n - 1];
+  const mainPool = order.slice(0, n - 1);
+  const mainN = mainPool.length;
+
+  const assigned = { S: [], A: [], B: [], C: [], D: [], F: [] };
+  let cursor = 0;
+  const tierNames = ['S','A','B','C','D'];
+  tierNames.forEach((t, i) => {
+    const cutFrac = tiers[i].pct;
+    const cutIdx = Math.round(cutFrac * (n - 1));
+    const end = Math.min(cutIdx, mainN);
+    while (cursor < end) {
+      assigned[t].push(mainPool[cursor]);
+      cursor++;
+    }
+  });
+  while (cursor < mainN) { assigned['D'].push(mainPool[cursor++]); }
+  assigned['F'].push(fSong);
+
+  currentTierData = assigned;
+  showScreen('screen-tier-list');
+  document.getElementById('tier-subtitle').textContent =
+    `${n} songs · Normally distributed across the tiers`;
+  renderTier(currentTier);
+}
+
+function renderTier(tier) {
+  const container = document.getElementById('tier-list-container');
+  if (!container || !currentTierData) return;
+  
+  container.innerHTML = '';
+  
+  const songs = currentTierData[tier];
+  const row = document.createElement('div');
+  row.className = `tier-row tier-${tier}`;
+
+  const label = document.createElement('div');
+  label.className = 'tier-label';
+  label.innerHTML = `${tier}<span class="tier-count">${songs.length}</span>`;
+
+  const chips = document.createElement('div');
+  chips.className = 'tier-songs';
+
+  songs.forEach(idx => {
+    const song = SONGS[idx];
+    const chip = document.createElement('div');
+    chip.className = 'tier-chip';
+    chip.innerHTML = `<img class="tier-chip-art" src="${song.art}" onerror="this.style.display='none'"><span>${escapeHtml(song.title)}</span>`;
+    chips.appendChild(chip);
+  });
+
+  row.appendChild(label);
+  row.appendChild(chips);
+  container.appendChild(row);
+  
+  document.querySelectorAll('.tier-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tier === tier);
+  });
+}
+
+function viewAlbumResults() {
+  if (currentAlbumStats) { 
+    renderAlbumPrediction();
+    showAlbumMetric('total'); 
+    showScreen('screen-album-results'); 
+  } 
+}
+
+function renderAlbumPrediction() {
+  const container = document.getElementById('album-prediction-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!albumPrediction || !albumPrediction.rankedAlbums || albumPrediction.rankedAlbums.length === 0) {
+    container.style.border = 'none';
+    container.innerHTML = `<div class="col-no-prediction">No prediction saved.<br><span style="font-size:0.78rem">You skipped the quiz — nothing to compare against.</span></div>`;
+    return;
+  }
+  container.style.border = '';
+  albumPrediction.rankedAlbums.forEach((album, idx) => {
+    const info = ALBUM_INFO[album.id] || {};
+    const art = info.art || '';
+    const row = document.createElement('div');
+    row.className = 'result-row prediction-row';
+    const medal = idx === 0 ? '♛' : idx === 1 ? '②' : idx === 2 ? '③' : `${idx + 1}`;
+    row.innerHTML = `<div class="result-rank">${medal}</div><img class="result-art" src="${art}" onerror="this.style.opacity='0.3'"><div class="result-info"><div class="result-title">${escapeHtml(album.title)}</div><div class="result-album">${album.year || ''}</div></div>`;
+    container.appendChild(row);
+  });
+}
+function viewSongResults() { showSongResults(); }
+function showAlbumMetric(metric) {
+  currentMetric = metric;
+  const totalBtn = document.getElementById('metric-total');
+  const medianBtn = document.getElementById('metric-median');
+  if(totalBtn) totalBtn.classList.toggle('active', metric === 'total');
+  if(medianBtn) medianBtn.classList.toggle('active', metric === 'median');
+  const ranking = metric === 'total' ? getAlbumRankingByTotal(currentAlbumStats) : getAlbumRankingByMedian(currentAlbumStats);
+  const container = document.getElementById('album-results-list');
+  if(!container) return;
+  container.innerHTML = '';
+  ranking.forEach((album, idx) => {
+    const row = document.createElement('div'); row.className = 'result-row';
+    const medal = idx === 0 ? '♛' : idx === 1 ? '②' : idx === 2 ? '③' : `${idx + 1}`;
+    const displayValue = metric === 'total' ? `${Math.round(album.value)} pts` : `#${album.value}`;
+    row.innerHTML = `<div class="result-rank">${medal}</div><img class="result-art" src="${album.art}" onerror="this.style.opacity='0.3'"><div class="result-info"><div class="result-title">${escapeHtml(album.albumTitle)}</div><div class="result-album">${album.year} · ${displayValue}</div></div>`;
+    container.appendChild(row);
+  });
+}
+let resultAudio = new Audio(); let resultPlayingBtn = null;
+function playResultClip(idx, btn) {
+  const song = SONGS[idx]; 
+  const path = song.clipPath;
+  
+  if (resultPlayingBtn === btn && !resultAudio.paused) { 
+    resultAudio.pause(); 
+    resultAudio.src = ''; 
+    btn.classList.remove('playing'); 
+    resultPlayingBtn = null; 
+    return; 
+  }
+  
+  if (resultPlayingBtn) resultPlayingBtn.classList.remove('playing');
+  if (resultAudio && !resultAudio.paused) {
+    resultAudio.pause(); 
+    resultAudio.src = '';
+  }
+  
+  // Use cache if available
+  if (audioCache[path]) {
+    resultAudio = audioCache[path];
+    resultAudio.currentTime = 0;
+    resultAudio.play()
+      .then(() => {
+        btn.classList.add('playing');
+        resultPlayingBtn = btn;
+      })
+      .catch(e => console.log("Playback error:", e));
+  } else {
+    resultAudio = new Audio(path);
+    resultAudio.preload = "auto";
+    
+    resultAudio.addEventListener('canplay', () => { 
+      resultAudio.play(); 
+      btn.classList.add('playing'); 
+      resultPlayingBtn = btn; 
+    }, { once: true });
+    resultAudio.addEventListener('ended', () => { 
+      btn.classList.remove('playing'); 
+      resultPlayingBtn = null; 
+    });
+    resultAudio.load();
+  }
+}
+function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+function exportResults() {
+  const order = sortState.finalOrder || [];
+  const lines = ['SONATA ARCTICA — MY DEFINITIVE RANKING', '=' .repeat(44), ''];
+  order.forEach((idx, rank) => { const s = SONGS[idx]; lines.push(`${String(rank+1).padStart(3, ' ')}. ${s.title} (${s.albumTitle}, ${s.year})`); });
+  lines.push('', `Generated by Sonata Arctica Song Ranker · ${new Date().toLocaleDateString()}`);
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sonata-arctica-ranking.txt'; a.click();
+}
+function exportFullResults() {
+  const order = sortState.finalOrder || [];
+  const lines = ['SONATA ARCTICA — COMPLETE RESULTS', '='.repeat(44), ''];
+  lines.push('SONG RANKING:', ''); 
+  order.forEach((idx, rank) => { const s = SONGS[idx]; lines.push(`${String(rank+1).padStart(3, ' ')}. ${s.title} (${s.albumTitle}, ${s.year})`); });
+  lines.push('', 'ALBUM RANKING (by Total Score):', ''); 
+  getAlbumRankingByTotal(currentAlbumStats).forEach((album, idx) => { lines.push(`${String(idx+1).padStart(3, ' ')}. ${album.albumTitle} (${album.year}) — ${Math.round(album.value)} pts`); });
+  lines.push('', 'ALBUM RANKING (by Median Rank):', ''); 
+  getAlbumRankingByMedian(currentAlbumStats).forEach((album, idx) => { lines.push(`${String(idx+1).padStart(3, ' ')}. ${album.albumTitle} (${album.year}) — #${album.value}`); });
+  
+  if (albumPrediction && albumPrediction.rankedAlbums && albumPrediction.rankedAlbums.length > 0) {
+    const actualRanking = getAlbumRankingByTotal(currentAlbumStats);
+    const predicted = albumPrediction.rankedAlbums;
+    const colW = Math.max(...predicted.map(a => a.title.length), ...actualRanking.map(a => a.albumTitle.length), 20) + 2;
+    lines.push('', 'YOUR PREDICTION vs REALITY (by Total Score):', '');
+    lines.push(`${'YOUR PREDICTION'.padEnd(colW + 5)}  ACTUAL RESULT`);
+    lines.push('-'.repeat(colW * 2 + 10));
+    const len = Math.max(predicted.length, actualRanking.length);
+    for (let i = 0; i < len; i++) {
+      const predName = predicted[i] ? `${i+1}. ${predicted[i].title}` : '';
+      const actualName = actualRanking[i] ? `${i+1}. ${actualRanking[i].albumTitle}` : '';
+      let arrow = '   ';
+      if (predicted[i] && actualRanking[i]) {
+        const predAlbum = predicted[i];
+        const actualPos = actualRanking.findIndex(a => a.albumId === predAlbum.id);
+        const predPos = i;
+        if (actualPos !== -1 && actualPos < predPos) arrow = ' ↑ ';
+        else if (actualPos !== -1 && actualPos > predPos) arrow = ' ↓ ';
+        else if (actualPos === predPos) arrow = ' = ';
+      }
+      lines.push(`${predName.padEnd(colW + 5)}${arrow} ${actualName}`);
+    }
+  }
+
+  lines.push('', `Generated by Sonata Arctica Song Ranker · ${new Date().toLocaleDateString()}`);
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sonata-arctica-complete-results.txt'; a.click();
+}
+function undoLastVote() { 
+  if (historyStack.length === 0) { 
+    setAudioStatus("Nothing to undo", false); 
+    return; 
+  } 
+  
+  const previous = historyStack.pop();
+  sortState = previous.sortState;
+  currentPair = previous.currentPair;
+  saveState(); 
+  stopAudio(); 
+  
+  if (sortState.mode === 'elo') {
+    renderSpecificEloBattle(currentPair);
+  } else {
+    renderBattle();
+  }
+  
+  setAudioStatus("Undid last vote", false); 
+}
+function savePrediction() {
+  if (rankedAlbums.length === 0) {
+    alert("Please rank at least one album, or click 'Skip Quiz' if you prefer not to make a prediction.");
+    return;
+  }
+  albumPrediction = { rankedAlbums: [...rankedAlbums], timestamp: new Date().toISOString() };
+  localStorage.setItem('sa_album_prediction', JSON.stringify(albumPrediction));
+  showScreen('screen-welcome');
+  const saved = loadState();
+  showWelcomeScreen(saved);
+}
+
+function skipQuiz() {
+  localStorage.setItem('quiz_skipped', 'true');
+  albumPrediction = null;
+  showScreen('screen-welcome');
+  const saved = loadState();
+  showWelcomeScreen(saved);
+}
+
+function beginSort(mode = 'tournament') { 
+  historyStack = [];
+  if (mode === 'tournament') {
+    sortState = initSort(); 
+    tryStartNextMerge(sortState); 
+    saveState(); 
+    document.getElementById('progress-wrap').style.display = 'block'; 
+    showScreen('screen-battle'); 
+    renderBattle();
+  } else {
+    sortState = {
+      mode: 'elo',
+      eloRatings: Array(TOTAL).fill(1500),
+      matchesPlayed: Array(TOTAL).fill(0),
+      comparisonsDone: 0,
+      done: false
+    };
+    saveState();
+    document.getElementById('progress-wrap').style.display = 'block';
+    showScreen('screen-battle');
+    renderEloBattle();
+  }
+}
+
+function renderEloBattle() {
+  setTimeout(() => {
+    const candidates = [];
+    for (let i = 0; i < TOTAL; i++) {
+      if (sortState.matchesPlayed[i] < 5) {
+        candidates.push(i);
+      }
+    }
+
+    const pool = candidates.length > 0 ? candidates : [...Array(TOTAL).keys()];
+    
+    let a, b;
+    do {
+      a = pool[Math.floor(Math.random() * pool.length)];
+      b = pool[Math.floor(Math.random() * pool.length)];
+    } while (a === b);
+
+    currentPair = [a, b];
+	    // Save the current pair to state for resume
+    sortState.currentPair = currentPair;
+    sortState.lastPair = currentPair;
+    saveState();  // Save after updating currentPair
+	
+  const sa = SONGS[a], sb = SONGS[b];
+    
+  document.getElementById('art-a').src = sa.art; 
+  document.getElementById('title-a').textContent = sa.title;
+  document.getElementById('album-a').textContent = sa.albumTitle; 
+  document.getElementById('year-a').textContent = sa.year;
+    
+  document.getElementById('art-b').src = sb.art; 
+  document.getElementById('title-b').textContent = sb.title;
+  document.getElementById('album-b').textContent = sb.albumTitle; 
+  document.getElementById('year-b').textContent = sb.year;
+    
+  document.getElementById('card-a').classList.remove('chosen'); 
+  document.getElementById('card-b').classList.remove('chosen');
+    
+  stopAudio(); 
+  setAudioStatus('Click PLAY CLIP to listen', false); 
+    
+  const minMatches = Math.min(...sortState.matchesPlayed);
+  const maxMatches = Math.max(...sortState.matchesPlayed);
+  const avgMatches = (sortState.matchesPlayed.reduce((a,b) => a + b, 0) / TOTAL).toFixed(1);
+    
+  document.getElementById('progress-label').textContent = 
+    `${sortState.comparisonsDone.toLocaleString()} comparisons (${avgMatches} avg/song)`;
+  document.getElementById('progress-pct').textContent = 
+    `${minMatches}-${maxMatches} matches/song`;
+  document.getElementById('progress-fill').style.width = 
+    `${Math.min(100, (minMatches / 5) * 100)}%`;
+}, 50); // 50ms delay to prevent browser lockup
+}
+
+function renderSpecificEloBattle(pair) {
+  currentPair = pair;
+  sortState.currentPair = currentPair;
+  sortState.lastPair = currentPair;
+  saveState();
+  const [a, b] = pair;
+  const sa = SONGS[a], sb = SONGS[b];
+    
+  document.getElementById('art-a').src = sa.art; 
+  document.getElementById('title-a').textContent = sa.title;
+  document.getElementById('album-a').textContent = sa.albumTitle; 
+  document.getElementById('year-a').textContent = sa.year;
+    
+  document.getElementById('art-b').src = sb.art; 
+  document.getElementById('title-b').textContent = sb.title;
+  document.getElementById('album-b').textContent = sb.albumTitle; 
+  document.getElementById('year-b').textContent = sb.year;
+    
+  document.getElementById('card-a').classList.remove('chosen'); 
+  document.getElementById('card-b').classList.remove('chosen');
+    
+  stopAudio(); 
+  setAudioStatus('Click PLAY CLIP to listen', false); 
+    
+  const minMatches = Math.min(...sortState.matchesPlayed);
+  const maxMatches = Math.max(...sortState.matchesPlayed);
+  const avgMatches = (sortState.matchesPlayed.reduce((a,b) => a + b, 0) / TOTAL).toFixed(1);
+    
+  document.getElementById('progress-label').textContent = 
+    `${sortState.comparisonsDone.toLocaleString()} comparisons (${avgMatches} avg/song)`;
+  document.getElementById('progress-pct').textContent = 
+    `${minMatches}-${maxMatches} matches/song`;
+  document.getElementById('progress-fill').style.width = 
+    `${Math.min(100, (minMatches / 5) * 100)}%`;
+}
+
+function recordEloChoice(winnerIdx, loserIdx) {
+  historyStack.push(JSON.parse(JSON.stringify({ 
+    sortState: sortState, 
+    currentPair: currentPair 
+  })));
+  
+  
+  const K = 32; // ELO K-factor
+  const winnerElo = sortState.eloRatings[winnerIdx];
+  const loserElo = sortState.eloRatings[loserIdx];
+  
+  const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+  const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
+  
+  sortState.eloRatings[winnerIdx] = Math.round(winnerElo + K * (1 - expectedWinner));
+  sortState.eloRatings[loserIdx] = Math.round(loserElo + K * (0 - expectedLoser));
+  
+  sortState.matchesPlayed[winnerIdx]++;
+  sortState.matchesPlayed[loserIdx]++;
+  sortState.comparisonsDone++;
+  
+  const allHaveEnough = sortState.matchesPlayed.every(count => count >= 5);
+  if (allHaveEnough) {
+    sortState.done = true;
+    sortState.finalOrder = [...Array(TOTAL).keys()].sort((a,b) => 
+      sortState.eloRatings[b] - sortState.eloRatings[a]
+    );
+    currentAlbumStats = calculateAlbumStats(sortState.finalOrder);
+    document.getElementById('progress-wrap').style.display = 'none';
+    showSongResults();
+  } else {
+    saveState();
+    renderEloBattle();
+  }
+}
+
+function resumeSort() { 
+  sortState = loadState(); 
+  if (sortState && !sortState.done) { 
+    document.getElementById('progress-wrap').style.display = 'block'; 
+    showScreen('screen-battle'); 
+    
+    // Check which mode we're in and render appropriately
+    if (sortState.mode === 'elo') {
+      // Need to restore currentPair if it exists, otherwise generate a new one
+      if (!sortState.currentPair && sortState.lastPair) {
+        currentPair = sortState.lastPair;
+      } else if (sortState.currentPair) {
+        currentPair = sortState.currentPair;
+      } else {
+        // Generate a random pair based on match counts
+        const candidates = [];
+        for (let i = 0; i < TOTAL; i++) {
+          if (sortState.matchesPlayed[i] < 5) {
+            candidates.push(i);
+          }
+        }
+        const pool = candidates.length > 0 ? candidates : [...Array(TOTAL).keys()];
+        let a, b;
+        do {
+          a = pool[Math.floor(Math.random() * pool.length)];
+          b = pool[Math.floor(Math.random() * pool.length)];
+        } while (a === b);
+        currentPair = [a, b];
+      }
+      renderSpecificEloBattle(currentPair);
+    } else {
+      // Tournament mode - restore the merge state
+      renderBattle();
+    }
+  } else { 
+    beginSort(); 
+  } 
+}
+
+function viewSaved() { 
+  sortState = loadState(); 
+  if (sortState && sortState.done) { 
+    currentAlbumStats = calculateAlbumStats(sortState.finalOrder);
+    showSongResults(); 
+  } else { 
+    alert("No completed ranking found."); 
+  } 
+}
+
+function showWelcomeScreen(saved) {
+  const actionsEl = document.getElementById('welcome-actions');
+  const resumeEl = document.getElementById('resume-info');
+  if(!actionsEl) return;
+  if (saved && !saved.done) {
+    if(resumeEl) { resumeEl.style.display = 'block'; resumeEl.textContent = `${saved.comparisonsDone} comparisons saved — resume where you left off`; }
+    actionsEl.innerHTML = `<div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center"><button class="btn primary" id="resumeSortBtn">Resume ranking</button><button class="btn danger" id="startFreshBtn">Start fresh</button></div>`;
+    document.getElementById('resumeSortBtn')?.addEventListener('click', resumeSort);
+    document.getElementById('startFreshBtn')?.addEventListener('click', resetAll);
+  } else if (saved && saved.done) {
+    if(resumeEl) { resumeEl.style.display = 'block'; resumeEl.textContent = 'You have a completed ranking saved.'; }
+    actionsEl.innerHTML = `<div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center"><button class="btn primary" id="viewSavedBtn">View ranking</button><button class="btn danger" id="startOverBtn">Start over</button></div>`;
+    document.getElementById('viewSavedBtn')?.addEventListener('click', viewSaved);
+    document.getElementById('startOverBtn')?.addEventListener('click', resetAll);
+  } else {
+    if(resumeEl) resumeEl.style.display = 'none';
+    actionsEl.innerHTML = `<button class="btn primary" id="beginSortBtn">Begin the sorting</button>`;
+    document.getElementById('beginSortBtn')?.addEventListener('click', () => showScreen('screen-mode-select'));
+  }
+  showScreen('screen-welcome');
+}
+
+function init() {
+  document.querySelectorAll('.tier-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTier = btn.dataset.tier;
+      renderTier(currentTier);
+    });
+  });
+  document.getElementById('tournamentBtn')?.addEventListener('click', () => beginSort('tournament'));
+  document.getElementById('eloBtn')?.addEventListener('click', () => beginSort('elo'));
+  document.getElementById('stat-songs').textContent = TOTAL;
+  document.getElementById('stat-albums').textContent = ALBUM_COUNT;
+  document.getElementById('stat-matches').textContent = '~' + EST_MATCHES;
+
+  document.getElementById('skipQuizBtn')?.addEventListener('click', skipQuiz);
+  document.getElementById('savePredictionBtn')?.addEventListener('click', savePrediction);
+  document.getElementById('viewAlbumResultsBtn')?.addEventListener('click', viewAlbumResults);
+  document.getElementById('exportResultsBtn')?.addEventListener('click', exportResults);
+  document.getElementById('resetFromSongBtn')?.addEventListener('click', resetAll);
+  document.getElementById('backToSongsBtn')?.addEventListener('click', viewSongResults);
+  document.getElementById('exportFullBtn')?.addEventListener('click', exportFullResults);
+  document.getElementById('resetFromAlbumBtn')?.addEventListener('click', resetAll);
+  document.getElementById('undoBtn')?.addEventListener('click', undoLastVote);
+  document.getElementById('viewTierListBtn')?.addEventListener('click', showTierList);
+  document.getElementById('backToSongsFromTierBtn')?.addEventListener('click', viewSongResults);
+  document.getElementById('viewAlbumFromTierBtn')?.addEventListener('click', viewAlbumResults);
+  document.getElementById('resetFromTierBtn')?.addEventListener('click', resetAll);
+  document.getElementById('metric-total')?.addEventListener('click', () => showAlbumMetric('total'));
+  document.getElementById('metric-median')?.addEventListener('click', () => showAlbumMetric('median'));
+  document.getElementById('vote-a')?.addEventListener('click', () => choose(0));
+  document.getElementById('vote-b')?.addEventListener('click', () => choose(1));
+  document.getElementById('play-a')?.addEventListener('click', (e) => { e.stopPropagation(); playClip(0); });
+  document.getElementById('play-b')?.addEventListener('click', (e) => { e.stopPropagation(); playClip(1); });
+
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('screen-battle').classList.contains('active')) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); choose(0); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); choose(1); }
+  });
+
+const saved = loadState();
+if (saved && saved.done) {
+  sortState = saved;
+  currentAlbumStats = calculateAlbumStats(sortState.finalOrder);
+  showSongResults();
+  return;
+}
+
+// Also check for incomplete saved state
+if (saved && !saved.done) {
+  sortState = saved;
+  // Try to restore currentPair if it was saved
+  if (saved.currentPair) {
+    currentPair = saved.currentPair;
+  }
+}
+// At the end of your init() function, add:
+setTimeout(() => {
+  // Preload first 4 songs for instant playback
+  const preloadCount = Math.min(4, SONGS.length);
+  for (let i = 0; i < preloadCount; i++) {
+    const testAudio = new Audio();
+    testAudio.preload = "auto";
+    testAudio.src = SONGS[i].clipPath;
+    testAudio.load();
+    console.log(`Preloading: ${SONGS[i].title}`);
+  }
+}, 2000);
+  const savedPrediction = localStorage.getItem('sa_album_prediction');
+  if (savedPrediction) albumPrediction = JSON.parse(savedPrediction);
+  const hasTakenQuiz = albumPrediction !== null || localStorage.getItem('quiz_skipped') === 'true';
+  
+  if (!hasTakenQuiz) {
+    // Initialize rankedAlbums with all albums in release order
+    rankedAlbums = initAlbumPool();
+    renderAlbumDragDrop();
+    
+    // Add drag-and-drop listeners to the rank div
+    const rankDiv = document.getElementById('album-rank-list-items');
+    if (rankDiv) {
+      rankDiv.addEventListener('dragover', handleContainerDragOver);
+      rankDiv.addEventListener('dragleave', handleContainerDragLeave);
+      rankDiv.addEventListener('drop', handleContainerDrop);
+    }
+    
+    // Show the intro screen instead of going straight to the quiz
+    showScreen('screen-intro');
+    
+    // Add the BEGIN button listener
+    document.getElementById('beginQuizBtn')?.addEventListener('click', () => {
+      showScreen('screen-prequiz');
+    });
+  } else {
+    showWelcomeScreen(saved);
+  }
+}
+
+// Make sure init is called only once at the end
+init();
+</script>
+</body>
+</html>
