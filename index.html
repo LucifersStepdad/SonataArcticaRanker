@@ -412,7 +412,7 @@
     color: var(--text2);
     font-size: 1.05rem;
     line-height: 1.7;
-    max-width: 480px;
+    max-width: 600px;
   }
 
   .stat-row {
@@ -1124,7 +1124,12 @@
 
   <div class="screen active" id="screen-welcome">
     <h2>The Sonata Arctica Showdown</h2>
-    <p>You'll be shown two songs at a time. Pick the one you prefer. Please note that for the algorithms to work, there are no draws possible.</p>
+		<p>
+		  You'll be shown two songs at a time. Pick the one you prefer.<br>
+		  Please note that for the algorithms to work, there are no draws&nbsp;possible.<br>
+		  If you are on mobile, please rotate your phone or else it might not fit&nbsp;nicely.<br>
+		  You can press play clip to play a short snippet of the song. That's a fun&nbsp;button&nbsp;to&nbsp;press.
+		</p>
     <div class="stat-row">
       <div class="stat-box"><span class="n" id="stat-songs">0</span><span class="l">Songs</span></div>
       <div class="stat-box"><span class="n" id="stat-albums">0</span><span class="l">Albums</span></div>
@@ -1139,6 +1144,7 @@
     <p style="text-align:center;max-width:500px;margin:0 auto 1.5rem">How busy are you this evening?</p>
     <div style="display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap">
       <div style="flex:1;min-width:280px;max-width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:1.5rem">
+        <h3 style="font-family:'Cinzel';color:var(--accent);text-align:center;margin-top:0">Tournament Sort</h3>
         <h3 style="font-family:'Cinzel';color:var(--accent);text-align:center;margin-top:0">Tournament Sort</h3>
         <p style="color:var(--text2);line-height:1.6">Full comparison tournament that guarantees a precise ranking order...but it takes ages. Die hards only.</p>
         <div style="margin:1rem 0;padding:0.75rem;background:var(--bg3);border-radius:4px;text-align:center">
